@@ -22,3 +22,4 @@ table.country <- table(df.wine$country)
 df.country <- subset(data.frame(table.country), Freq > 1000)
 tail(arrange(df.country, Freq), 5)
 
+# Hi I am Sophie
