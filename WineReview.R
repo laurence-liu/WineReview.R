@@ -85,8 +85,8 @@ df.wine.state.separate <- left_join(map_data("state"), df.province.US %>% mutate
 # Draw heat map
 ggplot(df.wine.state.separate, aes(long, lat)) + geom_polygon(aes(group = group, fill = Freq)) + coord_quickmap() + scale_fill_gradientn(colours=rev(heat.colors(3)))
 
-# Hist of points
-ggplot(df.wine.US, aes(x=points)) + geom_histogram(color="darkblue", fill="lightblue", bins = 20)
+# Hist and Normal Distribution of points
+ggplot(df.wine.US, aes(x=points)) + geom_histogram(binwidth=1, colour="black", aes(y=..density.., fill=..count..)) + stat_function(fun=dnorm, color="red", args=list(mean=mean(df.wine.US$points), sd=sd(df.wine.US$points)))
 
 # Level price
 df.wine.US$level[20 > df.wine.US$price] ='$'
@@ -122,4 +122,16 @@ colnames(df.rating) <- c("Rating", "Freq")
 df.rating <- arrange(df.rating, desc(Freq))
 
 # Draw rating pie chart
+df.rating <- df.rating %>%  mutate(per=`Freq`/sum(`Freq`)) %>% arrange(desc(Rating))
+df.rating$label <- percent(df.rating$per)
+ggplot(data=df.rating) +
+  scale_fill_manual(values=c('#B388FF', '#82B1FF', '#FFD180')) + 
+  geom_bar(aes(x="", y=per, fill=Rating), stat="identity", width = 1) +
+  coord_polar("y", start=0) +
+  theme_void() +
+  geom_text(aes(x=1, y = cumsum(per) - per/2, label=label))
+
+
+
+
 
