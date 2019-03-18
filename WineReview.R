@@ -68,7 +68,7 @@ df.province.US <- arrange(df.province.US, desc(Freq))
 
 # Get every latitude and longitude of every provinces
 for (i in 1:nrow(df.province.US)) {
-  latlng = geocode(as.character(df.province.US$region[i]))
+  latlng = geocode(as.character(df.province.US$Province[i]))
   df.province.US$latitude[i] = as.numeric(latlng)[2]
   df.province.US$longitude[i] = as.numeric(latlng)[1]
 }
@@ -137,58 +137,112 @@ ggplot(data=df.rating) +
   theme_void() +
   geom_text(aes(x=1, y = cumsum(per) - per/2, label=label))
 
+table.region.excellent <- table(df.wine.US[df.wine.US$points >= 95,]$region_1)
+df.region.excellent <- data.frame(table.region.excellent)
+colnames(df.rating) <- c("Region", "Freq")
+df.region.excellent <- arrange(df.region.excellent, desc(Freq))
+best.region <- head(df.region.excellent, 1)
 
-# Which variety is the most described “fruity”?
-df.fuzzy.fruity <- df.wine.US[grep("fruity", df.wine.US$description),]
-table.variety.fruity <- table(df.fuzzy.fruity$variety)
-df.variety.fruity <- data.frame(table.variety.fruity)
-colnames(df.variety.fruity) <- c("Variety", "Freq")
-df.variety.fruity <- arrange(df.variety.fruity, desc(Freq))
-max.variety.fruity <- df.variety.fruity[which.max(df.variety.fruity$Freq),]
-df.wine.variety.fruity <- df.wine.US[df.wine.US$variety == max.variety.fruity$Variety[1],]
-
-table.province.variety.fruity <- table(df.wine.variety.fruity$province)
-df.province.variety.fruity <- data.frame(table.province.variety.fruity)
-colnames(df.province.variety.fruity) <- c("region", "Freq")
-df.province.variety.fruity <- arrange(df.province.variety.fruity, desc(Freq))
-
-df.province.variety.fruity <- right_join(select(df.province.US, region, latitude, longitude), df.province.variety.fruity)
-
-map.USA + geom_point(aes(x=longitude, y=latitude), data=df.province.variety.fruity, col="red", alpha=0.4, size=df.province.variety.fruity$Freq / 300) + scale_size_continuous(range = range(df.province.variety.fruity$Freq))
-
-# Correlation between prices and points
-points.model <- lm(price ~ points, data = df.wine.US)
-summary(points.model)
-attributes(points.model)
-plot(df.wine.US$price~df.wine.US$points)
-abline(points.model,col='red')
-
-# Create C/P Value, using histogram and boxplot, find and remove outliers
-
+# Create a column called CPvalue
 df.wine.US$CPvalue <- df.wine.US$points/df.wine.US$price
+df.wine.US
 
-p1 <- ggplot(data = df.wine.US, aes(x = CPvalue)) +
-  geom_histogram(binwidth = 1, color = 'black',fill = I('orange'))
+# using histogram and boxplot
+p1 <- ggplot(data = df.wine.US, aes(x = CPvalue)) + geom_histogram(binwidth = 1, color = 'black',fill = I('orange'))
+p1
 boxplot(df.wine.US$CPvalue,main= "CPvalue Boxplot", pch=19, xlab="CPvalue")
+
+# find and remove outliers and new boxplot without outliers
 boxplot(df.wine.US$CPvalue)$out
 boxplot(df.wine.US$CPvalue, plot=FALSE)$out
 outliers <- boxplot(df.wine.US$CPvalue, plot=FALSE)$out
 print(outliers)
 df.wine.US[which(df.wine.US$CPvalue %in% outliers),]
 df.wine.US <- df.wine.US[-which(df.wine.US$CPvalue %in% outliers),]
-df.wine.US
+
+# new histogram and boxplot without outliers 
+p2 <- ggplot(data = df.wine.US, aes(x = CPvalue)) + geom_histogram(binwidth = 1, color = 'black',fill = I('orange'))
+p2
 boxplot(df.wine.US$CPvalue,main= "CPvalue Boxplot w/o outliers", pch=19, xlab="CPvalue")
 
-#Wine topvalue
+# Top4 provines High CP value 
 topvalue <- subset(df.wine.US, CPvalue>7.9)
-topvalue
 topvalue[,c("points", "province", "region_1", "winery", "variety")]
 
+library(MASS)
 table.value.province <- table(topvalue$province)
 table.value.province
+province.freq <-table.value.province
+pie(province.freq)
 
-table.value.region <- table(topvalue$region_1)
-table.value.region
 
-table.value.variety <- table(topvalue$variety)
-table.value.variety
+#Find top5 provinces
+table.province.US <- table(df.wine.US$province)
+df.province.US <- data.frame(table.province.US)
+colnames(df.province.US) <- c("Province", "Freq")
+top5.province.US <- head(arrange(df.province.US, desc(Freq)),5)
+top5.province.US<- ggplot(top5.province.US, aes(x=Province, y=Freq))+geom_bar(stat="identity")
+top5.province.US
+
+# find top5 regions
+table.region.US <- table(df.wine.US$region_1)
+df.region.US <- data.frame(table.region.US)
+colnames(df.region.US) <- c("region_1", "Freq")
+top5.region.US <- head(arrange(df.region.US, desc(Freq)),5)
+top5.region.US<- ggplot(top5.region.US, aes(x= region_1, y=Freq))+geom_bar(stat="identity")
+top5.region.US
+
+# find top5 wineries 
+table.winery.US <- table(df.wine.US$winery)
+df.winery.US <- data.frame(table.winery.US)
+colnames(df.winery.US) <- c("winery", "Freq")
+top5.winery.US <- head(arrange(df.winery.US, desc(Freq)),5)
+top5.winery.US<- ggplot(top5.winery.US, aes(x= winery, y=Freq))+geom_bar(stat="identity")
+top5.winery.US
+
+# find top5 varieties
+table.variety.US <- table(df.wine.US$variety)
+df.variety.US <- data.frame(table.variety.US)
+colnames(df.variety.US) <- c("variety", "Freq")
+top5.variety.US <- head(arrange(df.variety.US, desc(Freq)),5)
+top5.variety.US<- ggplot(top5.variety.US, aes(x= variety, y=Freq))+geom_bar(stat="identity")
+top5.variety.US
+
+# Top5 variety described as “Fruity”
+library(stringr)
+x2 <- with(df.wine.US, str_detect(df.wine.US$description, 'fruity'))
+fruity.wine <- df.wine.US[x2,, drop=FALSE]
+
+table.variety.fruity <- table(fruity.wine$variety)
+df.variety.fruity <- data.frame(table.variety.fruity)
+colnames(df.variety.fruity) <- c("variety", "Freq")
+top5.variety.fruity <- head(arrange(df.variety.fruity, desc(Freq)),5)
+top5.variety.fruity
+
+barplot(top5.variety.fruity$Freq, main= "Top5 fruity variety", xlab="variety", ylab= "Freq", border="red",col="blue", density=10)
+
+# Top5 variety described as “Dry”
+x3 <- with(df.wine.US, str_detect(df.wine.US$description, 'dry'))
+dry.wine <- df.wine.US[x3,, drop=FALSE]
+
+table.variety.dry <- table(dry.wine$variety)
+df.variety.dry <- data.frame(table.variety.dry)
+colnames(df.variety.dry) <- c("variety", "Freq")
+top5.variety.dry <- head(arrange(df.variety.dry,desc(Freq)),5)
+top5.variety.dry
+
+barplot(top5.variety.dry$Freq, main= "Top5 fruity variety", xlab="variety", ylab= "Freq", border="red",col="blue", density=10)
+
+# Top5 variety described as “Ready to drink” or “drink soon”
+x4 <- with(df.wine.US, str_detect(df.wine.US$description, 'ready to drink'))
+ready.wine1 <- df.wine.US[x4,, drop=FALSE]
+x5 <- with(df.wine.US, str_detect(df.wine.US$description, 'drink soon'))
+ready.wine2 <- df.wine.US[x5,, drop=FALSE]
+ready.wine3 <-rbind(ready.wine1, ready.wine2)
+table.variety.ready <- table(ready.wine3$variety)
+df.variety.ready <- data.frame(table.variety.ready)
+colnames(df.variety.ready) <- c("variety", "Freq")
+top5.variety.ready <- head(arrange(df.variety.ready, desc(Freq)),5)
+top5.variety.ready
+
+barplot(top5.variety.ready$Freq, main= "Top5 fruity variety", xlab="variety", ylab= "Freq", border="red",col="blue", density=10)
